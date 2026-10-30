@@ -1,0 +1,8 @@
+[project]
+name = "garnet-guard-action-test"
+version = "0"
+description = "A throwaway project that gets dependency update PRs, so Garnet Guard's Action can be tested on them."
+requires-python = ">=3.11"
+dependencies = [
+    "requests==2.32.3",
+]
