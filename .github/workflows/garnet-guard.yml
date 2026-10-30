@@ -1,10 +1,10 @@
-# Garnet Guard on dependency pull requests: one workflow.
+# Garnet Guard for pull requests from forks: the check half of the two-workflow
+# pattern (SPEC §10.2). Copy to .github/workflows/garnet-guard.yml, together
+# with garnet-guard-comment.yml.
 #
-# Copy to .github/workflows/garnet-guard.yml. This is enough for Dependabot
-# and Renovate pull requests opened from branches in this repository.
-# Pull requests from forks get a read-only token, so this job can't comment on
-# them; it still writes the report to the job summary. To comment on fork pull
-# requests too, use garnet-guard-fork.yml with garnet-guard-comment.yml instead.
+# This job runs with a read-only token and never comments. It uploads the JSON
+# report, and the comment workflow posts it from a run that has write access
+# but never checks out or runs pull request code.
 #
 # Pin the Action to a full commit SHA from a Garnet Guard release, not a tag.
 name: Garnet Guard
@@ -30,14 +30,19 @@ jobs:
     name: Check dependency changes
     runs-on: ubuntu-latest
     permissions:
-      contents: read        # read the lockfiles and the base commit
-      pull-requests: write  # post or update the comment
-      security-events: write  # upload the SARIF report to code scanning
+      contents: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       - uses: orca-solutions/garnet-guard@42547f6313420768a2bf5d03e9577a68844496e9 # v0.1.0a1
+        id: garnet
         with:
+          comment: false
           fail-on: block
-          sarif: true
+      - if: ${{ always() && steps.garnet.outputs.report-path != '' }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: garnet-guard-report
+          path: ${{ steps.garnet.outputs.report-path }}
+          retention-days: 7
